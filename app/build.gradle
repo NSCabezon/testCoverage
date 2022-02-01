@@ -1,7 +1,31 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
+    id 'kover'
+    id 'jacoco'
 }
+
+
+task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'createDebugCoverageReport']) {
+    reports {
+        xml.enabled true
+        html.enabled true
+    }
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${buildDir}/intermediates/classes/debug", excludes: fileFilter)
+    def kotlinDebugTree = fileTree(dir: "${buildDir}/tmp/kotlin-classes/debug", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+    sourceDirectories.setFrom(files([mainSrc]))
+    classDirectories.setFrom(files([debugTree, kotlinDebugTree]))
+    executionData.setFrom(fileTree(dir: "$buildDir", includes: ["jacoco/testDebugUnitTest.exec", "outputs/code-coverage/connected/*coverage.ec"]))
+}
+
+
+tasks.withType(Test) {
+    jacoco.includeNoLocationClasses = true
+    jacoco.excludes = ['jdk.internal.*']
+}
+
 
 android {
     compileSdk 32
@@ -20,7 +44,11 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            testCoverageEnabled = true
+        }
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.debug'
+            testCoverageEnabled true
         }
     }
     compileOptions {
@@ -33,6 +61,7 @@ android {
     buildFeatures {
         viewBinding true
     }
+    namespace 'com.example.yetanothertestcoverageproject'
 }
 
 dependencies {
